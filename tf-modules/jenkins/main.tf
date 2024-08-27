@@ -5,7 +5,6 @@ provider "aws" {
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
   owners      = ["amazon"]
-
   filter {
     name   = "name"
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
@@ -15,32 +14,23 @@ data "aws_ami" "amazon_linux_2" {
 resource "aws_instance" "jenkins_server" {
   ami           = data.aws_ami.amazon_linux_2.id
   instance_type = var.instance_type
-  key_name      = "jenkins"
-
+  key_name      = var.key_name
   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
-
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo yum update -y
-              sudo amazon-linux-extras install java-openjdk11 -y
-              sudo yum install polkit
-              sudo systemctl enable polkit.service
-              sudo systemctl start polkit.service
-              sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-              sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
-              sudo yum install jenkins -y
-              sudo systemctl enable jenkins
-              sudo systemctl start jenkins
-              EOF
 
   tags = {
     Name = "JenkinsServer"
   }
+
+  # We'll use a minimal user data script to update the system
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo yum update -y
+              EOF
 }
 
 resource "aws_security_group" "jenkins_sg" {
   name        = "jenkins_sg"
-  description = "Allow inbound traffic for Jenkins"
+  description = "Security group for Jenkins server"
 
   ingress {
     description = "SSH"
@@ -51,9 +41,17 @@ resource "aws_security_group" "jenkins_sg" {
   }
 
   ingress {
-    description = "Jenkins web interface"
-    from_port   = 8080
-    to_port     = 8080
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks  # Needed for Let's Encrypt HTTP challenge
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = var.allowed_cidr_blocks
   }

@@ -13,6 +13,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "Name of the EC2 key pair to use"
   type        = string
+  default     = jenkins
 }
 
 variable "allowed_cidr_blocks" {
