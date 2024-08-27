@@ -1,5 +1,7 @@
+# Secret
 *.pem
 
+# TF
 *.tfvars
 *.tfvars.json
 
@@ -15,3 +17,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Ansible
+ansible/inventory.ini
+*.retry

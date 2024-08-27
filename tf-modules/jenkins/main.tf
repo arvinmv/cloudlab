@@ -50,6 +50,14 @@ resource "aws_security_group" "jenkins_sg" {
 
   ingress {
     description = "HTTPS"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+  }
+
+  ingress {
+    description = "HTTPS"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"

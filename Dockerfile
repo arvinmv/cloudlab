@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     groff \
     git \
     jq \
-    vim
+    vim \
+    ansible \
+    openssh-client 
 
 ENV TERRAFORM_VERSION=1.9.3
 
@@ -18,6 +20,7 @@ RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terra
     mv terraform /usr/local/bin/ && \
     rm terraform_${TERRAFORM_VERSION}_linux_arm64.zip
 
-RUN echo 'alias tf="terraform"' >> /root/.bashrc
+
+RUN echo 'alias tf="terraform"' >> /root/.bashrc \
 
 ENTRYPOINT ["/bin/bash"]

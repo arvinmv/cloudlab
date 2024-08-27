@@ -1,0 +1,93 @@
+---
+- name: Configure Jenkins server with HTTPS
+  hosts: jenkins_server
+  become: yes
+  vars:
+    domain_name: jenkins.arvinmv.dev
+
+  tasks:
+    - name: Install required packages
+      yum:
+        name:
+          - java-11-amazon-corretto
+          - nginx
+          - python3-pip
+        state: present
+
+    - name: Install certbot
+      pip:
+        name: certbot
+
+    - name: Add Jenkins repository
+      get_url:
+        url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+        dest: /etc/yum.repos.d/jenkins.repo
+
+    - name: Import Jenkins GPG key
+      rpm_key:
+        key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        state: present
+
+    - name: Install Jenkins
+      yum:
+        name: jenkins
+        state: present
+
+    - name: Start and enable Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+    - name: Ensure webroot directory exists
+      file:
+        path: /var/www/letsencrypt
+        state: directory
+
+    - name: Configure Nginx for Jenkins and Let's Encrypt
+      template:
+        src: nginx_jenkins.conf.j2
+        dest: /etc/nginx/conf.d/jenkins.conf
+      notify: Reload Nginx
+
+    - name: Start and enable Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Obtain Let's Encrypt certificate
+      command: >
+        certbot certonly --webroot 
+        -w /var/www/letsencrypt 
+        -d {{ domain_name }} 
+        --non-interactive --agree-tos 
+        --email your-email@example.com
+      args:
+        creates: /etc/letsencrypt/live/{{ domain_name }}
+
+    - name: Set up Let's Encrypt auto-renewal
+      cron:
+        name: "Let's Encrypt renewal"
+        job: "/usr/bin/certbot renew --quiet"
+        minute: "0"
+        hour: "0"
+        day: "1"
+
+    - name: Update Jenkins URL
+      lineinfile:
+        path: /var/lib/jenkins/config.xml
+        regexp: '<jenkinsUrl>.*</jenkinsUrl>'
+        line: '<jenkinsUrl>https://{{ domain_name }}</jenkinsUrl>'
+      notify: Restart Jenkins
+
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded
+
+    - name: Restart Jenkins
+      systemd:
+        name: jenkins
+        state: restarted
