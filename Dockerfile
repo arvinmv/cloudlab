@@ -21,6 +21,6 @@ RUN curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terra
     rm terraform_${TERRAFORM_VERSION}_linux_arm64.zip
 
 
-RUN echo 'alias tf="terraform"' >> /root/.bashrc \
+RUN echo 'alias tf="terraform"' >> /root/.bashrc
 
 ENTRYPOINT ["/bin/bash"]
